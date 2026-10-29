@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Infinity Lamp - firmware installer</title>
+<!--
+  Browser-based flasher for a blank ESP32-S3, published to GitHub Pages by
+  .github/workflows/release.yml as the site root.
+
+  It uses ESP Web Tools, which talks to the board over the Web Serial API. That
+  means:
+    * Chromium browsers only - Chrome, Edge, Opera, Brave. Not Firefox, not
+      Safari, and not any browser on iOS.
+    * A secure context, which is why this is served from https://*.github.io
+      and not opened as a local file.
+    * A USB DATA cable. Charge-only cables are the single most common reason a
+      board does not appear in the port picker.
+
+  This page is only needed once per board. After the first flash the lamp
+  updates itself from its own web UI.
+-->
+<script type="module"
+        src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module"></script>
+<style>
+  :root { color-scheme: dark;
+          --bg:#0b0e13; --fg:#e8eef7; --mut:#93a1b5; --line:#1e2733;
+          --acc:#5b8cff; --ok:#3ecf8e; --warn:#d19a2a; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); line-height:1.55;
+         font:15px/1.55 system-ui,-apple-system,Segoe UI,Roboto,sans-serif; }
+  main { max-width:760px; margin:0 auto; padding:32px 20px 64px; }
+  h1 { font-size:26px; margin:0 0 4px; }
+  h2 { font-size:18px; margin:28px 0 8px; }
+  p.sub { color:var(--mut); margin:0 0 24px; }
+  .panel { background:#111721; border:1px solid var(--line); border-radius:12px;
+           padding:18px 20px; margin:18px 0; }
+  .cta { text-align:center; padding:26px 20px; }
+  button.flash { background:var(--acc); color:#04070d; border:0; border-radius:9px;
+                 padding:13px 26px; font-size:16px; font-weight:650; cursor:pointer; }
+  button.flash[disabled] { background:#2a3444; color:var(--mut); cursor:not-allowed; }
+  .note { color:var(--mut); font-size:13.5px; }
+  .warn { color:var(--warn); }
+  ol,ul { padding-left:22px; }
+  li { margin:5px 0; }
+  code { background:#0a0f16; border:1px solid var(--line); border-radius:4px;
+         padding:1px 5px; font-size:13px; }
+  a { color:var(--acc); }
+  table { width:100%; border-collapse:collapse; font-size:13.5px; margin-top:8px; }
+  th,td { text-align:left; padding:6px 8px; border-bottom:1px solid var(--line); }
+  th { color:var(--mut); font-weight:600; }
+  #ver { color:var(--ok); font-weight:600; }
+  .unsupported { display:none; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Infinity Lamp firmware installer</h1>
+  <p class="sub">Flash a new ESP32-S3 straight from this page. No IDE, no
+     toolchain, no command line.</p>
+
+  <div class="panel cta">
+    <esp-web-install-button manifest="firmware/install-manifest.json">
+      <button class="flash" slot="activate">Connect and install</button>
+      <span slot="unsupported" class="unsupported" style="display:block">
+        <b>This browser cannot talk to serial devices.</b><br>
+        <span class="note">Open this page in Chrome, Edge, Opera or Brave on a
+          desktop computer. Firefox, Safari and every browser on iOS lack the
+          Web Serial API entirely.</span>
+      </span>
+      <span slot="not-allowed" class="unsupported" style="display:block">
+        <b>This page must be served over HTTPS.</b>
+        <span class="note">Use the published address rather than a local copy of
+          the file.</span>
+      </span>
+    </esp-web-install-button>
+    <p class="note" style="margin:14px 0 0">
+      Installing version <span id="ver">...</span>. This erases the board and
+      writes the bootloader, partition table, firmware and web interface.
+    </p>
+  </div>
+
+  <h2>Before you start</h2>
+  <ul>
+    <li>A <b>USB data cable</b>. Charge-only cables carry no data and the board
+      will never appear in the port list; if nothing shows up, this is almost
+      always why.</li>
+    <li>Plug into the ESP32-S3's <b>USB port</b>, not a separate UART adapter,
+      unless your board only has the latter.</li>
+    <li>If no port appears, hold <b>BOOT</b>, tap <b>RESET</b>, release
+      <b>BOOT</b> and try again. That forces the download mode some boards do
+      not enter on their own.</li>
+    <li>On Windows you may need the CP210x or CH340 USB-serial driver, depending
+      on which chip your board uses. Native-USB S3 boards need neither.</li>
+  </ul>
+
+  <h2>After it finishes</h2>
+  <ol>
+    <li>The lamp starts its own WiFi network called <code>infinity-lamp</code>.
+      Join it from a phone or laptop - it is open by default.</li>
+    <li>A sign-in page should appear automatically. If it does not, browse to
+      <code>http://infinity.lamp/</code> or <code>http://192.168.4.1/</code>.</li>
+    <li>Open <b>Advanced settings</b>, enter your own WiFi details and reboot.
+      The lamp is then at <code>http://infinity-lamp.local/</code>.</li>
+    <li>Tell it what you have built - shape, LEDs per edge, colour order - under
+      <b>LED &amp; shape config</b>. Nothing about the lamp's layout is
+      compiled in, so there is never a reason to reflash for a hardware
+      change.</li>
+  </ol>
+
+  <h2>Later updates</h2>
+  <p>You should not need this page again. Once the lamp is on your network, open
+     its web interface, go to <b>Advanced settings -&gt; Firmware and
+     updates</b> and press <b>Check for updates</b>. The lamp downloads and
+     verifies the new image itself, keeping every setting, palette and custom
+     effect. Come back here only if a lamp is so thoroughly broken that its web
+     interface no longer loads.</p>
+
+  <h2>What gets written</h2>
+  <table id="parts"><thead><tr><th>image</th><th>flash offset</th></tr></thead>
+    <tbody><tr><td colspan="2" class="note">loading...</td></tr></tbody></table>
+  <p class="note">The images and their checksums are also attached to each
+     <a id="rel" href="#">GitHub release</a> if you would rather flash with
+     <code>esptool</code> or PlatformIO.</p>
+</main>
+
+<script>
+  // Read the same manifest the flasher uses, so the page can never advertise a
+  // version or a layout that differs from what the button actually writes.
+  fetch('firmware/install-manifest.json')
+    .then(r => r.json())
+    .then(m => {
+      document.getElementById('ver').textContent = m.version || 'unknown';
+      const parts = (m.builds && m.builds[0] && m.builds[0].parts) || [];
+      document.querySelector('#parts tbody').innerHTML = parts.map(p =>
+        `<tr><td><code>${p.path}</code></td>` +
+        `<td><code>0x${p.offset.toString(16).toUpperCase().padStart(6,'0')}</code></td></tr>`
+      ).join('') || '<tr><td colspan="2" class="note">no images listed</td></tr>';
+    })
+    .catch(() => {
+      document.getElementById('ver').textContent = 'unavailable';
+    });
+
+  // Derive the releases link from the Pages URL: owner.github.io/repo/ ->
+  // github.com/owner/repo/releases. Saves hard-coding the repository name in
+  // a file that is meant to be forkable.
+  (function () {
+    const host = location.hostname.split('.')[0];
+    const repo = location.pathname.split('/').filter(Boolean)[0];
+    const a = document.getElementById('rel');
+    if (host && repo) a.href = `https://github.com/${host}/${repo}/releases`;
+  })();
+</script>
+</body>
+</html>
