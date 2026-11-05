@@ -3,153 +3,643 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Infinity Lamp - firmware installer</title>
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#05070C">
+<title>Tessera · Infinity lamp firmware, guides and parts</title>
+<meta name="description" content="Install and update Tessera infinity lamp firmware, read the user guides, and download STEP files to print replacement parts.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%2305070C'/%3E%3Crect x='4' y='4' width='24' height='24' fill='none' stroke='%23F2F5F7' stroke-width='3'/%3E%3Crect x='11' y='11' width='10' height='10' fill='%235CD3E8'/%3E%3C/svg%3E">
 <!--
-  Browser-based flasher for a blank ESP32-S3, published to GitHub Pages by
-  .github/workflows/release.yml as the site root.
+  TESSERA PUBLIC SITE - infinity-lamps.github.io/tessera/
 
-  It uses ESP Web Tools, which talks to the board over the Web Serial API. That
-  means:
-    * Chromium browsers only - Chrome, Edge, Opera, Brave. Not Firefox, not
-      Safari, and not any browser on iOS.
-    * A secure context, which is why this is served from https://*.github.io
-      and not opened as a local file.
-    * A USB DATA cable. Charge-only cables are the single most common reason a
-      board does not appear in the port picker.
+  OWNERSHIP OF THE gh-pages BRANCH (see the release workflow in tessera-private):
+    * firmware/         written ONLY by the release workflow. Never edit by hand.
+    * everything else   (this file, assets/, .nojekyll) maintained by hand and
+                        published with _scripts/push-tessera-public.ps1.
 
-  This page is only needed once per board. After the first flash the lamp
-  updates itself from its own web UI.
+  Nothing here is hard-coded per release:
+    * the version, date and notes come from firmware/manifest.json
+    * the flasher reads firmware/install-manifest.json
+    * the guide links and the parts list are checked against the repo's main
+      branch with ONE GitHub API call per page view (unauthenticated limit is
+      60 per hour per visitor IP - if it is hit, guide links simply stay
+      visible and the parts list points at the folder on GitHub).
+
+  Third-party code is vendored, not loaded from a CDN, so the page has no
+  outside dependencies apart from the GitHub API call above:
+    * assets/vendor/esp-web-tools-10.4.0/  (Apache 2.0, see LICENSE there)
+    * assets/fonts/                         (SIL OFL 1.1, see LICENSE-*.txt)
+  To update the flasher: npm pack esp-web-tools@<version>, copy package/dist/web
+  into a new assets/vendor/esp-web-tools-<version>/ folder, change the one
+  <script> line below, test, then delete the old folder.
 -->
-<script type="module"
-        src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module"></script>
+<script type="module" src="assets/vendor/esp-web-tools-10.4.0/install-button.js"></script>
 <style>
-  :root { color-scheme: dark;
-          --bg:#0b0e13; --fg:#e8eef7; --mut:#93a1b5; --line:#1e2733;
-          --acc:#5b8cff; --ok:#3ecf8e; --warn:#d19a2a; }
+  @font-face { font-family:'Outfit'; font-style:normal; font-weight:300; font-display:swap; src:url(assets/fonts/outfit-latin-300-normal.woff2) format('woff2'); }
+  @font-face { font-family:'Outfit'; font-style:normal; font-weight:400; font-display:swap; src:url(assets/fonts/outfit-latin-400-normal.woff2) format('woff2'); }
+  @font-face { font-family:'Outfit'; font-style:normal; font-weight:600; font-display:swap; src:url(assets/fonts/outfit-latin-600-normal.woff2) format('woff2'); }
+  @font-face { font-family:'IBM Plex Mono'; font-style:normal; font-weight:400; font-display:swap; src:url(assets/fonts/ibm-plex-mono-latin-400-normal.woff2) format('woff2'); }
+  @font-face { font-family:'IBM Plex Mono'; font-style:normal; font-weight:500; font-display:swap; src:url(assets/fonts/ibm-plex-mono-latin-500-normal.woff2) format('woff2'); }
+
+  /* Tessera token layer, brand guide v1.1 section 11. Dark only. */
+  :root {
+    --void:#05070C; --panel:#0D1119; --line:#1E252E; --line-strong:#56616F;
+    --starlight:#F2F5F7; --slate:#8A929B; --body:#A9B1BA;
+    --cyan:#5CD3E8; --cyan-dim:#3C9AAE; --green:#2FA98C; --green-ln:#1D5648;
+    --violet:#8B6BD9; --warn:#E0A33A;
+    --radius:2px;
+    --font:'Outfit', system-ui, 'Segoe UI', sans-serif;
+    --mono:'IBM Plex Mono', ui-monospace, Consolas, monospace;
+    --sweep:linear-gradient(90deg, var(--green), var(--cyan) 45%, var(--violet));
+  }
   * { box-sizing:border-box; }
-  body { margin:0; background:var(--bg); color:var(--fg); line-height:1.55;
-         font:15px/1.55 system-ui,-apple-system,Segoe UI,Roboto,sans-serif; }
-  main { max-width:760px; margin:0 auto; padding:32px 20px 64px; }
-  h1 { font-size:26px; margin:0 0 4px; }
-  h2 { font-size:18px; margin:28px 0 8px; }
-  p.sub { color:var(--mut); margin:0 0 24px; }
-  .panel { background:#111721; border:1px solid var(--line); border-radius:12px;
-           padding:18px 20px; margin:18px 0; }
-  .cta { text-align:center; padding:26px 20px; }
-  button.flash { background:var(--acc); color:#04070d; border:0; border-radius:9px;
-                 padding:13px 26px; font-size:16px; font-weight:650; cursor:pointer; }
-  button.flash[disabled] { background:#2a3444; color:var(--mut); cursor:not-allowed; }
-  .note { color:var(--mut); font-size:13.5px; }
-  .warn { color:var(--warn); }
-  ol,ul { padding-left:22px; }
-  li { margin:5px 0; }
-  code { background:#0a0f16; border:1px solid var(--line); border-radius:4px;
-         padding:1px 5px; font-size:13px; }
-  a { color:var(--acc); }
-  table { width:100%; border-collapse:collapse; font-size:13.5px; margin-top:8px; }
-  th,td { text-align:left; padding:6px 8px; border-bottom:1px solid var(--line); }
-  th { color:var(--mut); font-weight:600; }
-  #ver { color:var(--ok); font-weight:600; }
-  .unsupported { display:none; }
+  html { background:var(--void); scroll-behavior:smooth; }
+  body { margin:0; background:var(--void); color:var(--body); font:16px/1.62 var(--font);
+         -webkit-font-smoothing:antialiased; }
+  a { color:var(--cyan); text-decoration:none; border-bottom:1px solid rgba(92,211,232,.35); }
+  a:hover { color:#7CDEEE; border-bottom-color:var(--cyan); }
+  a:focus-visible, button:focus-visible, summary:focus-visible { outline:2px solid var(--starlight); outline-offset:3px; }
+  b, strong { color:var(--starlight); font-weight:500; }
+  code { font-family:var(--mono); font-size:.88em; color:var(--starlight); overflow-wrap:anywhere; }
+  [hidden] { display:none !important; }
+
+  .wrap { max-width:1120px; margin:0 auto; padding:0 24px; }
+  .mono-label { margin:0; font-family:var(--mono); font-size:11px; letter-spacing:.14em;
+                text-transform:uppercase; color:var(--slate); }
+  .skip { position:absolute; left:-9999px; top:8px; background:var(--cyan); color:#04161B;
+          padding:10px 16px; border:0; z-index:10; font-weight:600; }
+  .skip:focus { left:8px; }
+
+  /* Header */
+  header.site { border-bottom:1px solid var(--line); background:var(--panel); }
+  header.site .wrap { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between;
+                      gap:4px 24px; padding-top:10px; padding-bottom:10px; }
+  .brand { display:inline-flex; align-items:center; gap:12px; min-height:44px; border:0; color:var(--starlight); }
+  .brand:hover { color:var(--starlight); }
+  .brand .word { font-size:16px; letter-spacing:.22em; text-transform:uppercase; }
+  .brand .sub { font-family:var(--mono); font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--slate); }
+  nav.top { display:flex; flex-wrap:wrap; gap:0 20px; font-family:var(--mono); font-size:12px;
+            letter-spacing:.12em; text-transform:uppercase; }
+  nav.top a { display:inline-flex; align-items:center; min-height:44px; border:0; color:var(--body); }
+  nav.top a:hover { color:var(--starlight); }
+  nav.top a.gh { color:var(--cyan); }
+
+  /* Hero */
+  .hero { display:flex; flex-wrap:wrap; align-items:center; gap:48px; padding-top:72px; padding-bottom:64px; }
+  .hero .text { flex:1 1 460px; min-width:0; }
+  .hero h1 { margin:20px 0 0; font-weight:300; font-size:clamp(40px, 6vw, 64px); line-height:1.06;
+             letter-spacing:-.025em; color:var(--starlight); }
+  .sweep { width:64px; height:2px; margin:28px 0; background:var(--sweep); }
+  .lede { margin:0; max-width:34em; font-size:18px; }
+  .actions { display:flex; flex-wrap:wrap; gap:12px; margin-top:32px; }
+  .btn { display:inline-flex; align-items:center; justify-content:center; min-height:48px; padding:0 24px;
+         border-radius:var(--radius); font:inherit; font-size:15px; cursor:pointer; }
+  .btn-primary { background:var(--cyan); color:#04161B; border:1px solid var(--cyan); font-weight:600; }
+  .btn-primary:hover { background:#7CDEEE; border-color:#7CDEEE; color:#04161B; }
+  .btn-ghost { background:transparent; color:var(--starlight); border:1px solid var(--line-strong); }
+  .btn-ghost:hover { border-color:var(--cyan); color:var(--starlight); }
+  .hero .art { flex:0 1 400px; min-width:240px; display:flex; justify-content:center; }
+  .hero .art svg { width:100%; max-width:400px; height:auto; }
+
+  /* Release strip */
+  .strip { border-top:1px solid var(--line); border-bottom:1px solid var(--line); background:var(--panel); }
+  .strip .wrap { display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:24px;
+                 padding-top:28px; padding-bottom:28px; }
+  .strip .val { margin:6px 0 0; font-family:var(--mono); font-size:22px; font-weight:500; letter-spacing:.04em;
+                color:var(--starlight); }
+  .strip .val.quiet { color:var(--slate); }
+  .strip .note { margin:4px 0 0; font-size:14px; color:var(--slate); }
+  .strip .links { margin:6px 0 0; display:flex; flex-wrap:wrap; gap:4px 16px; }
+
+  /* Sections */
+  section.block { padding-top:88px; padding-bottom:8px; scroll-margin-top:16px; }
+  section.block h2 { margin:12px 0 0; font-weight:300; font-size:36px; line-height:1.15; letter-spacing:-.02em;
+                     color:var(--starlight); }
+  section.block > .wrap > p.intro { margin:16px 0 0; max-width:38em; }
+  h3.sub { margin:0 0 16px; font-family:var(--mono); font-size:12px; font-weight:500; letter-spacing:.14em;
+           text-transform:uppercase; color:var(--starlight); }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:24px; }
+  .grid3 { display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:16px; margin-top:40px; }
+  .card h3 { margin:0 0 8px; font-size:18px; font-weight:400; color:var(--starlight); }
+  .card p { margin:0; font-size:15px; }
+
+  /* Install */
+  .install { display:flex; flex-wrap:wrap; gap:24px; margin-top:40px; }
+  .install > * { flex:1 1 380px; min-width:0; }
+  .install .card { padding:32px; }
+  .install .meta { margin:16px 0 0; font-family:var(--mono); font-size:12px; letter-spacing:.12em;
+                   text-transform:uppercase; color:var(--slate); }
+  .install .meta span { color:var(--green); }
+  .install .browsers { margin:20px 0 0; font-size:15px; }
+  .install .unsupported b { display:block; color:var(--warn); font-weight:500; margin-bottom:6px; }
+  ul.bullets { margin:0; padding:0; list-style:none; display:flex; flex-direction:column; gap:14px; }
+  ul.bullets li { display:flex; gap:14px; align-items:baseline; }
+  ul.bullets svg { flex:none; }
+  ol.steps { margin:0; padding:0; list-style:none; display:grid; grid-template-columns:repeat(auto-fit, minmax(230px, 1fr)); gap:16px; }
+  ol.steps li { border-top:1px solid var(--line); padding-top:18px; }
+  ol.steps .n { margin:0 0 8px; font-family:var(--mono); font-size:13px; letter-spacing:.1em; color:var(--cyan); }
+  ol.steps .t { margin:0 0 6px; font-size:17px; color:var(--starlight); }
+  ol.steps p:last-child { margin:0; font-size:15px; }
+  details.dev { margin-top:40px; border-top:1px solid var(--line); padding-top:16px; }
+  details.dev summary { cursor:pointer; min-height:44px; display:flex; align-items:center; font-family:var(--mono);
+                        font-size:12px; letter-spacing:.12em; text-transform:uppercase; color:var(--slate); }
+  details.dev summary:hover { color:var(--starlight); }
+  details.dev p { font-size:15px; max-width:44em; }
+
+  /* Tables */
+  .tbox { overflow-x:auto; border:1px solid var(--line); border-radius:var(--radius); }
+  table { width:100%; border-collapse:collapse; font-size:15px; }
+  caption { caption-side:top; text-align:left; padding:16px 20px; font-family:var(--mono); font-size:11px;
+            letter-spacing:.14em; text-transform:uppercase; color:var(--slate); background:var(--panel);
+            border-bottom:1px solid var(--line); }
+  th, td { text-align:left; padding:14px 20px; border-bottom:1px solid var(--line); vertical-align:top; }
+  thead th { font-family:var(--mono); font-size:11px; font-weight:500; letter-spacing:.12em; text-transform:uppercase;
+             color:var(--slate); padding-top:12px; padding-bottom:12px; }
+  tbody tr:last-child td, tbody tr:last-child th { border-bottom:0; }
+  th.group { font-family:var(--mono); font-size:11px; font-weight:500; letter-spacing:.14em; text-transform:uppercase;
+             color:var(--starlight); background:rgba(13,17,25,.6); }
+  td.num { font-family:var(--mono); font-size:13px; color:var(--slate); white-space:nowrap; }
+  td.file { color:var(--starlight); overflow-wrap:anywhere; }
+  .dev table { min-width:360px; font-size:14px; }
+  .dev td, .dev th { padding:10px 16px; }
+
+  /* Guides */
+  article.guide { display:flex; flex-direction:column; gap:10px; border-top:2px solid var(--cyan); }
+  article.guide.kit { border-top-color:var(--green); }
+  article.guide.kit .mono-label { color:var(--green); }
+  article.guide h3 { margin:0; font-size:22px; font-weight:300; }
+  article.guide .desc { flex:1; }
+  article.guide .links { margin:6px 0 0; display:flex; flex-wrap:wrap; gap:4px 20px; }
+  .soon { font-family:var(--mono); font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--slate); }
+  .tag-kit { margin-left:8px; font-family:var(--mono); font-size:10px; letter-spacing:.14em; text-transform:uppercase;
+             color:var(--green); border:1px solid var(--green-ln); padding:2px 6px; border-radius:var(--radius); }
+  .parts-note { margin:16px 0 0; font-size:15px; color:var(--slate); }
+
+  /* Licence and footer */
+  .licences { padding-top:88px; padding-bottom:72px; }
+  .licences .rule { height:2px; background:var(--sweep); opacity:.6; }
+  .licences .cols { display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:24px; padding-top:32px; }
+  .licences p { margin:6px 0 0; font-size:15px; }
+  footer.site { border-top:1px solid var(--line); background:var(--panel); }
+  footer.site .wrap { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px 24px;
+                      padding-top:24px; padding-bottom:24px; font-family:var(--mono); font-size:11px;
+                      letter-spacing:.14em; text-transform:uppercase; color:var(--slate); }
+  footer.site .mk { display:inline-flex; align-items:center; gap:12px; }
+
+  @media (max-width:640px) {
+    .hero { padding-top:48px; gap:32px; }
+    .hero .art { order:-1; flex-basis:100%; }
+    .hero .art svg { max-width:240px; }
+    section.block { padding-top:64px; }
+    section.block h2 { font-size:30px; }
+    .install .card { padding:24px; }
+  }
+  @media (prefers-reduced-motion:reduce) { html { scroll-behavior:auto; } }
 </style>
 </head>
 <body>
-<main>
-  <h1>Infinity Lamp firmware installer</h1>
-  <p class="sub">Flash a new ESP32-S3 straight from this page. No IDE, no
-     toolchain, no command line.</p>
+<a class="skip" href="#main">Skip to content</a>
 
-  <div class="panel cta">
-    <esp-web-install-button manifest="firmware/install-manifest.json">
-      <button class="flash" slot="activate">Connect and install</button>
-      <span slot="unsupported" class="unsupported" style="display:block">
-        <b>This browser cannot talk to serial devices.</b><br>
-        <span class="note">Open this page in Chrome, Edge, Opera or Brave on a
-          desktop computer. Firefox, Safari and every browser on iOS lack the
-          Web Serial API entirely.</span>
-      </span>
-      <span slot="not-allowed" class="unsupported" style="display:block">
-        <b>This page must be served over HTTPS.</b>
-        <span class="note">Use the published address rather than a local copy of
-          the file.</span>
-      </span>
-    </esp-web-install-button>
-    <p class="note" style="margin:14px 0 0">
-      Installing version <span id="ver">...</span>. This erases the board and
-      writes the bootloader, partition table, firmware and web interface.
-    </p>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="#top">
+      <svg width="28" height="28" viewBox="0 0 32 32" aria-hidden="true" fill="none"><rect x="2" y="2" width="28" height="28" stroke="#F2F5F7" stroke-width="1.5"/><rect x="10" y="10" width="12" height="12" stroke="#5CD3E8" stroke-width="1.5"/><path d="M2 2 10 10M30 2 22 10M2 30 10 22M30 30 22 22" stroke="#3C9AAE" stroke-width="1.5"/></svg>
+      <span class="word">Tessera</span>
+      <span class="sub">Infinity lamps</span>
+    </a>
+    <nav class="top" aria-label="Sections">
+      <a href="#install">Install</a>
+      <a href="#updates">Updates</a>
+      <a href="#guides">Guides</a>
+      <a href="#parts">Parts</a>
+      <a class="gh" href="https://github.com/infinity-lamps/tessera">GitHub</a>
+    </nav>
   </div>
+</header>
 
-  <h2>Before you start</h2>
-  <ul>
-    <li>A <b>USB data cable</b>. Charge-only cables carry no data and the board
-      will never appear in the port list; if nothing shows up, this is almost
-      always why.</li>
-    <li>Plug into the ESP32-S3's <b>USB port</b>, not a separate UART adapter,
-      unless your board only has the latter.</li>
-    <li>If no port appears, hold <b>BOOT</b>, tap <b>RESET</b>, release
-      <b>BOOT</b> and try again. That forces the download mode some boards do
-      not enter on their own.</li>
-    <li>On Windows you may need the CP210x or CH340 USB-serial driver, depending
-      on which chip your board uses. Native-USB S3 boards need neither.</li>
-  </ul>
+<main id="main">
+<div id="top" class="wrap hero">
+  <div class="text">
+    <p class="mono-label">Open source · Firmware · Guides · Parts</p>
+    <h1>A piece of the galaxy, in a box.</h1>
+    <div class="sweep" aria-hidden="true"></div>
+    <p class="lede">This is the public home of the Tessera infinity lamp. The lamps fetch their firmware updates from here, and this is where you will find what you need to set one up, look after it, and print a replacement part if one breaks.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="#install">Install firmware</a>
+      <a class="btn btn-ghost" href="#guides">Read the guides</a>
+    </div>
+  </div>
+  <div class="art">
+    <svg viewBox="0 0 400 400" aria-hidden="true" fill="none">
+      <defs>
+        <clipPath id="tsDiamond"><polygon points="200,8 392,200 200,392 8,200"/></clipPath>
+        <linearGradient id="tsAurora" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2FA98C"/><stop offset=".45" stop-color="#5CD3E8"/><stop offset="1" stop-color="#8B6BD9"/></linearGradient>
+        <radialGradient id="tsGlowV"><stop offset="0" stop-color="#8B6BD9" stop-opacity=".38"/><stop offset="1" stop-color="#8B6BD9" stop-opacity="0"/></radialGradient>
+        <radialGradient id="tsGlowG"><stop offset="0" stop-color="#2FA98C" stop-opacity=".26"/><stop offset="1" stop-color="#2FA98C" stop-opacity="0"/></radialGradient>
+      </defs>
+      <g clip-path="url(#tsDiamond)">
+        <rect width="400" height="400" fill="#05070C"/>
+        <circle cx="190" cy="186" r="180" fill="url(#tsGlowV)"/>
+        <circle cx="262" cy="262" r="130" fill="url(#tsGlowG)"/>
+        <g fill="#F2F5F7">
+          <circle cx="120" cy="150" r="1.2" opacity=".8"/><circle cx="96" cy="210" r=".9" opacity=".5"/><circle cx="150" cy="96" r="1" opacity=".6"/>
+          <circle cx="250" cy="80" r="1.1" opacity=".7"/><circle cx="300" cy="150" r=".9" opacity=".5"/><circle cx="330" cy="214" r="1.3" opacity=".8"/>
+          <circle cx="276" cy="318" r="1" opacity=".6"/><circle cx="190" cy="336" r=".9" opacity=".5"/><circle cx="118" cy="262" r="1.1" opacity=".7"/>
+          <circle cx="64" cy="196" r=".8" opacity=".4"/><circle cx="214" cy="40" r=".8" opacity=".4"/><circle cx="356" cy="196" r=".8" opacity=".4"/>
+          <circle cx="204" cy="364" r=".8" opacity=".4"/><circle cx="160" cy="300" r=".7" opacity=".35"/><circle cx="296" cy="104" r=".7" opacity=".35"/>
+        </g>
+        <circle cx="226" cy="122" r="1.3" fill="#5CD3E8" opacity=".8"/>
+        <circle cx="150" cy="232" r="1.2" fill="#8B6BD9" opacity=".8"/>
+        <rect x="120" y="120" width="160" height="160" stroke="#F2F5F7" stroke-width="2"/>
+        <rect x="168" y="168" width="64" height="64" stroke="#5CD3E8" stroke-width="2"/>
+        <path d="M120 120 168 168M280 120 232 168M120 280 168 232M280 280 232 232" stroke="#3C9AAE" stroke-width="1.6"/>
+      </g>
+      <polygon points="200,8 392,200 200,392 8,200" stroke="url(#tsAurora)" stroke-width="1.5"/>
+    </svg>
+  </div>
+</div>
 
-  <h2>After it finishes</h2>
-  <ol>
-    <li>The lamp starts its own WiFi network called <code>infinity-lamp</code>.
-      Join it from a phone or laptop - it is open by default.</li>
-    <li>A sign-in page should appear automatically. If it does not, browse to
-      <code>http://infinity.lamp/</code> or <code>http://192.168.4.1/</code>.</li>
-    <li>Open <b>Advanced settings</b>, enter your own WiFi details and reboot.
-      The lamp is then at <code>http://infinity-lamp.local/</code>.</li>
-    <li>Tell it what you have built - shape, LEDs per edge, colour order - under
-      <b>LED &amp; shape config</b>. Nothing about the lamp's layout is
-      compiled in, so there is never a reason to reflash for a hardware
-      change.</li>
-  </ol>
+<!-- Current release: filled from firmware/manifest.json -->
+<section class="strip" aria-label="Current release">
+  <div class="wrap">
+    <div>
+      <p class="mono-label">Stable release</p>
+      <p class="val" id="relVer">-</p>
+      <p class="note" id="relNotes"></p>
+    </div>
+    <div>
+      <p class="mono-label">Published</p>
+      <p class="val" id="relDate">-</p>
+    </div>
+    <div>
+      <p class="mono-label">Beta channel</p>
+      <p class="val quiet" id="relBeta">None open</p>
+    </div>
+    <div>
+      <p class="mono-label">Files</p>
+      <p class="links"><a id="relLink" href="https://github.com/infinity-lamps/tessera/releases">Release notes</a><a href="https://github.com/infinity-lamps/tessera/releases">All releases</a><a href="firmware/SHA256SUMS">Checksums</a></p>
+    </div>
+  </div>
+</section>
 
-  <h2>Later updates</h2>
-  <p>You should not need this page again. Once the lamp is on your network, open
-     its web interface, go to <b>Advanced settings -&gt; Firmware and
-     updates</b> and press <b>Check for updates</b>. The lamp downloads and
-     verifies the new image itself, keeping every setting, palette and custom
-     effect. Come back here only if a lamp is so thoroughly broken that its web
-     interface no longer loads.</p>
+<!-- 01 INSTALL -->
+<section id="install" class="block">
+  <div class="wrap">
+    <p class="mono-label">01 · Install</p>
+    <h2>Put the firmware on a new board</h2>
+    <p class="intro">You only need this once per board. This page writes the bootloader, the firmware and the lamp's web interface straight from your browser over USB. After that, the lamp updates itself.</p>
 
-  <h2>What gets written</h2>
-  <table id="parts"><thead><tr><th>image</th><th>flash offset</th></tr></thead>
-    <tbody><tr><td colspan="2" class="note">loading...</td></tr></tbody></table>
-  <p class="note">The images and their checksums are also attached to each
-     <a id="rel" href="#">GitHub release</a> if you would rather flash with
-     <code>esptool</code> or PlatformIO.</p>
+    <div class="install">
+      <div class="card">
+        <esp-web-install-button manifest="firmware/install-manifest.json">
+          <button class="btn btn-primary" slot="activate" type="button" style="min-height:52px;font-size:16px">Connect and install</button>
+          <div slot="unsupported" class="unsupported">
+            <b>This browser cannot talk to USB devices.</b>
+            Open this page in Chrome, Edge, Opera or Brave on a desktop computer. Firefox, Safari and every browser on iPhone and iPad cannot do this.
+          </div>
+          <div slot="not-allowed" class="unsupported">
+            <b>This page has to be opened from its web address.</b>
+            A copy saved to your computer cannot reach USB devices.
+          </div>
+        </esp-web-install-button>
+        <p class="meta">Installs <span id="installVer">the latest release</span> · Erases the board</p>
+        <p class="browsers">Needs Chrome, Edge, Opera or Brave on a desktop computer. Firefox, Safari and every browser on iPhone and iPad cannot talk to USB devices, so the button will not appear there.</p>
+      </div>
+      <div>
+        <h3 class="sub">Before you start</h3>
+        <ul class="bullets">
+          <li><svg width="11" height="11" viewBox="0 0 12 12" aria-hidden="true"><rect x=".75" y=".75" width="10.5" height="10.5" fill="none" stroke="#F2F5F7"/><rect x="3.5" y="3.5" width="5" height="5" fill="#5CD3E8"/></svg><span>Use a <b>USB data cable</b>. A charge-only cable is the most common reason the board never appears.</span></li>
+          <li><svg width="11" height="11" viewBox="0 0 12 12" aria-hidden="true"><rect x=".75" y=".75" width="10.5" height="10.5" fill="none" stroke="#F2F5F7"/><rect x="3.5" y="3.5" width="5" height="5" fill="#5CD3E8"/></svg><span>Plug into the ESP32-S3's own USB port, not a separate serial adapter.</span></li>
+          <li><svg width="11" height="11" viewBox="0 0 12 12" aria-hidden="true"><rect x=".75" y=".75" width="10.5" height="10.5" fill="none" stroke="#F2F5F7"/><rect x="3.5" y="3.5" width="5" height="5" fill="#5CD3E8"/></svg><span>No port listed? Hold <b>BOOT</b>, tap <b>RESET</b>, release BOOT, then try again.</span></li>
+          <li><svg width="11" height="11" viewBox="0 0 12 12" aria-hidden="true"><rect x=".75" y=".75" width="10.5" height="10.5" fill="none" stroke="#F2F5F7"/><rect x="3.5" y="3.5" width="5" height="5" fill="#5CD3E8"/></svg><span>On Windows, some boards need the CP210x or CH340 driver. Boards with native USB need neither.</span></li>
+        </ul>
+      </div>
+    </div>
+
+    <h3 class="sub" style="margin-top:56px;margin-bottom:20px">After it finishes</h3>
+    <ol class="steps">
+      <li><p class="n">01</p><p class="t">Join the lamp's network</p><p>The lamp starts its own WiFi network called <code>infinity-lamp</code>. It is open, with no password.</p></li>
+      <li><p class="n">02</p><p class="t">Open the lamp's page</p><p>It usually opens by itself. If not, go to <code>http://192.168.4.1/</code></p></li>
+      <li><p class="n">03</p><p class="t">Connect it to your WiFi</p><p>In the <b>Network</b> section, enter your WiFi details, save, then restart the lamp. It is then at <code>http://infinity-lamp.local/</code></p></li>
+      <li><p class="n">04</p><p class="t">Tell it what you built</p><p>Under <b>Advanced settings</b>, set the shape, LEDs per edge and colour order. Nothing about the layout is built in, so a hardware change never needs a reinstall.</p></li>
+    </ol>
+
+    <details class="dev">
+      <summary>For developers: what gets written</summary>
+      <p>The same images, with checksums, are attached to each <a href="https://github.com/infinity-lamps/tessera/releases">GitHub release</a> if you would rather flash with <code>esptool</code> or PlatformIO.</p>
+      <div class="tbox" style="margin-top:12px">
+        <table id="parts-written">
+          <thead><tr><th scope="col">Image</th><th scope="col">Flash offset</th></tr></thead>
+          <tbody><tr><td colspan="2" class="num">Loading</td></tr></tbody>
+        </table>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- 02 UPDATES -->
+<section id="updates" class="block">
+  <div class="wrap">
+    <p class="mono-label">02 · Updates</p>
+    <h2>Updates arrive on their own</h2>
+    <p class="intro">Lamps on your WiFi check this site for new firmware. Each download is checked against its published checksum before it is installed, and your settings, palettes and custom effects carry across.</p>
+    <div class="grid3">
+      <div class="card"><h3>Check from the lamp</h3><p>Open the lamp's page, then <b>Advanced settings</b>, <b>Firmware and updates</b>, <b>Check for updates</b>.</p></div>
+      <div class="card"><h3>Stable or beta</h3><p>Stable is for everyday use. Beta gets new features first and may have rough edges. A lamp set to stable never installs a beta.</p></div>
+      <div class="card"><h3>No internet on the lamp?</h3><p>Download the files from <a href="https://github.com/infinity-lamps/tessera/releases">Releases</a> and upload them under Firmware and updates. Settings are kept the same way.</p></div>
+    </div>
+    <div class="card" style="margin-top:16px;display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 20px;background:transparent">
+      <span class="mono-label">Update address</span>
+      <code id="manifestUrl">https://infinity-lamps.github.io/tessera/firmware/manifest.json</code>
+      <span style="font-size:14px;color:var(--slate)">The file every lamp reads. Its address does not change.</span>
+    </div>
+  </div>
+</section>
+
+<!-- 03 GUIDES. The three cards below are hand-written; their data-file paths
+     are on the main branch. A link whose file is not on main yet is hidden and
+     the card shows "Coming soon". Any OTHER guide in guides/ (a .md, a .pdf, or
+     both with the same name) gets a card of its own automatically. -->
+<section id="guides" class="block">
+  <div class="wrap">
+    <p class="mono-label">03 · Guides</p>
+    <h2>Read it once, keep it handy</h2>
+    <p class="intro">Each guide reads on your phone beside the lamp, and comes as a PDF to print.</p>
+    <div class="grid3" id="guideGrid">
+      <article class="card guide">
+        <p class="mono-label">Every lamp</p>
+        <h3>Quick Start</h3>
+        <p class="desc">From plugging it in to controlling it from your phone.</p>
+        <p class="links"><a data-file="guides/Infinity_Lamp_Quick_Start.md" href="https://github.com/infinity-lamps/tessera/blob/main/guides/Infinity_Lamp_Quick_Start.md">Read online</a><a data-file="guides/Infinity_Lamp_Quick_Start.pdf" href="https://github.com/infinity-lamps/tessera/blob/main/guides/Infinity_Lamp_Quick_Start.pdf">PDF</a><span class="soon" hidden>Coming soon</span></p>
+      </article>
+      <article class="card guide">
+        <p class="mono-label">Every lamp</p>
+        <h3>User Guide</h3>
+        <p class="desc">Every control on the lamp's page, what it does, and what to try when something looks wrong.</p>
+        <p class="links"><a data-file="guides/Infinity_Lamp_User_Guide.md" href="https://github.com/infinity-lamps/tessera/blob/main/guides/Infinity_Lamp_User_Guide.md">Read online</a><a data-file="guides/Infinity_Lamp_User_Guide.pdf" href="https://github.com/infinity-lamps/tessera/blob/main/guides/Infinity_Lamp_User_Guide.pdf">PDF</a><span class="soon" hidden>Coming soon</span></p>
+      </article>
+      <article class="card guide kit">
+        <p class="mono-label">Kit</p>
+        <h3>Kit Build Guide</h3>
+        <p class="desc">Building a lamp from a kit: frame, wiring, panels and first power-up.</p>
+        <p class="links"><a data-file="guides/Infinity_Lamp_DIY_Kit_Build_Guide.md" href="https://github.com/infinity-lamps/tessera/blob/main/guides/Infinity_Lamp_DIY_Kit_Build_Guide.md">Read online</a><a data-file="guides/Infinity_Lamp_DIY_Kit_Build_Guide.pdf" href="https://github.com/infinity-lamps/tessera/blob/main/guides/Infinity_Lamp_DIY_Kit_Build_Guide.pdf">PDF</a><span class="soon" hidden>Coming soon</span></p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- 04 PARTS. Listed automatically from 3d-print-files/ on the main branch: one
+     sub-folder per lamp (for example 3d-print-files/100mm-rhombic-dodecahedron/),
+     with .step / .stp / .3mf / .stl files inside. 3d-print-files/README.md, if present, is
+     linked as the print settings. -->
+<section id="parts" class="block">
+  <div class="wrap">
+    <p class="mono-label">04 · Parts</p>
+    <h2>Print a replacement part</h2>
+    <p class="intro">STEP files for the printed parts, so a cracked piece does not mean a new lamp. Files are grouped by edge length and shape, the same way the lamps are named.</p>
+    <div class="tbox" style="margin-top:40px">
+      <table id="partsTable">
+        <caption>Printed parts</caption>
+        <thead><tr><th scope="col">File</th><th scope="col">Size</th><th scope="col">Download</th></tr></thead>
+        <tbody id="partsBody"><tr><td colspan="3"><span class="soon">Coming soon</span></td></tr></tbody>
+      </table>
+    </div>
+    <p class="parts-note" id="partsNote">Files are free to print for your own lamp, and to share under the same licence. <a href="https://github.com/infinity-lamps/tessera/tree/main/3d-print-files">Browse the 3D print files on GitHub</a>.</p>
+  </div>
+</section>
+
+<section class="wrap licences" aria-label="Licences and support">
+  <div class="rule" aria-hidden="true"></div>
+  <div class="cols">
+    <div><p class="mono-label">Firmware</p><p><a href="https://github.com/infinity-lamps/tessera/blob/main/LICENSE">MIT licence</a>. Use it, change it, build on it.</p></div>
+    <div><p class="mono-label">Guides and 3D files</p><p><a href="https://github.com/infinity-lamps/tessera/blob/main/LICENSE-CONTENT">CC BY-SA 4.0</a>. Share and adapt them, with credit, under the same terms.</p></div>
+    <div><p class="mono-label">Found a problem?</p><p><a href="https://github.com/infinity-lamps/tessera/issues">Open an issue on GitHub</a> and say which lamp and firmware version you have.</p></div>
+  </div>
+</section>
 </main>
 
-<script>
-  // Read the same manifest the flasher uses, so the page can never advertise a
-  // version or a layout that differs from what the button actually writes.
-  fetch('firmware/install-manifest.json')
-    .then(r => r.json())
-    .then(m => {
-      document.getElementById('ver').textContent = m.version || 'unknown';
-      const parts = (m.builds && m.builds[0] && m.builds[0].parts) || [];
-      document.querySelector('#parts tbody').innerHTML = parts.map(p =>
-        `<tr><td><code>${p.path}</code></td>` +
-        `<td><code>0x${p.offset.toString(16).toUpperCase().padStart(6,'0')}</code></td></tr>`
-      ).join('') || '<tr><td colspan="2" class="note">no images listed</td></tr>';
-    })
-    .catch(() => {
-      document.getElementById('ver').textContent = 'unavailable';
-    });
+<footer class="site">
+  <div class="wrap">
+    <span class="mk"><svg width="16" height="16" viewBox="0 0 32 32" aria-hidden="true" fill="none"><rect x="2" y="2" width="28" height="28" stroke="#F2F5F7" stroke-width="2.5"/><rect x="10" y="10" width="12" height="12" fill="#5CD3E8"/></svg>Tessera · Made by Ryan in Scotland</span>
+    <span id="footVer"></span>
+  </div>
+</footer>
 
-  // Derive the releases link from the Pages URL: owner.github.io/repo/ ->
-  // github.com/owner/repo/releases. Saves hard-coding the repository name in
-  // a file that is meant to be forkable.
-  (function () {
-    const host = location.hostname.split('.')[0];
-    const repo = location.pathname.split('/').filter(Boolean)[0];
-    const a = document.getElementById('rel');
-    if (host && repo) a.href = `https://github.com/${host}/${repo}/releases`;
+<script>
+(function () {
+  'use strict';
+
+  // ---- Where this site and its repo live ------------------------------------
+  // Derived from the Pages address (owner.github.io/repo/) so a fork works
+  // unchanged; falls back to the real repo when previewed on localhost.
+  var FALLBACK_REPO = 'infinity-lamps/tessera';
+  var BRANCH = 'main';
+  var REPO = (function () {
+    var h = location.hostname, seg = location.pathname.split('/').filter(Boolean);
+    if (/\.github\.io$/i.test(h) && seg.length) return h.split('.')[0] + '/' + seg[0];
+    return FALLBACK_REPO;
   })();
+  var GH = 'https://github.com/' + REPO;
+  var RAW = 'https://raw.githubusercontent.com/' + REPO + '/' + BRANCH + '/';
+  // Folders on main. They mirror "End User Publications" in the private project.
+  var GUIDES = 'guides/', PRINTS = '3d-print-files/';
+
+  function $(id) { return document.getElementById(id); }
+  function setText(id, t) { var e = $(id); if (e) e.textContent = t; }
+  function encPath(p) { return p.split('/').map(encodeURIComponent).join('/'); }
+
+  // Rewrite hard-coded repo links when running from a fork.
+  if (REPO !== FALLBACK_REPO) {
+    document.querySelectorAll('a[href^="https://github.com/' + FALLBACK_REPO + '"]').forEach(function (a) {
+      a.href = a.href.replace('https://github.com/' + FALLBACK_REPO, GH);
+    });
+  }
+  if (/\.github\.io$/i.test(location.hostname)) {
+    setText('manifestUrl', new URL('firmware/manifest.json', location.href).href);
+  }
+
+  function fmtDate(iso) {
+    if (!iso) return '-';
+    var d = new Date(iso + 'T00:00:00Z');
+    if (isNaN(d)) return iso;
+    return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+  }
+  function fmtSize(n) {
+    if (n == null) return '';
+    if (n < 1024) return n + ' B';
+    if (n < 1048576) return Math.round(n / 1024) + ' KB';
+    return (n / 1048576).toFixed(1) + ' MB';
+  }
+  function json(url, opts) {
+    return fetch(url, opts).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); });
+  }
+
+  // ---- Release strip: the same manifest the lamps read ----------------------
+  json('firmware/manifest.json', { cache: 'no-cache' }).then(function (m) {
+    // A flat manifest (no channel keys) is treated as stable, as the lamps do.
+    var s = m.stable || (m.version ? m : null);
+    if (s) {
+      setText('relVer', 'v' + s.version);
+      setText('relDate', fmtDate(s.published));
+      setText('relNotes', s.notes || '');
+      $('relLink').href = GH + '/releases/tag/v' + encodeURIComponent(s.version);
+    }
+    var b = m.beta && m.beta.version ? m.beta : null;
+    var beta = $('relBeta');
+    beta.textContent = b ? 'v' + b.version : 'None open';
+    beta.classList.toggle('quiet', !b);
+  }).catch(function () { setText('relVer', 'Unavailable'); });
+
+  // ---- Flasher version and image table: the manifest the button uses --------
+  json('firmware/install-manifest.json', { cache: 'no-cache' }).then(function (m) {
+    if (m.version) { setText('installVer', 'v' + m.version); setText('footVer', 'Firmware v' + m.version); }
+    var parts = (m.builds && m.builds[0] && m.builds[0].parts) || [];
+    var tb = document.querySelector('#parts-written tbody');
+    tb.textContent = '';
+    parts.forEach(function (p) {
+      var tr = document.createElement('tr');
+      var a = document.createElement('td'); a.className = 'file';
+      var c = document.createElement('code'); c.textContent = p.path; a.appendChild(c);
+      var o = document.createElement('td'); o.className = 'num';
+      o.textContent = '0x' + Number(p.offset).toString(16).toUpperCase().padStart(6, '0');
+      tr.appendChild(a); tr.appendChild(o); tb.appendChild(tr);
+    });
+  }).catch(function () {
+    setText('installVer', 'the latest release');
+    document.querySelector('#parts-written tbody').innerHTML = '<tr><td colspan="2" class="num">Not available</td></tr>';
+  });
+
+  // ---- Guides and parts: one call lists every file on main ------------------
+  function markGuides(files) {
+    document.querySelectorAll('article.guide').forEach(function (card) {
+      var shown = 0;
+      card.querySelectorAll('a[data-file]').forEach(function (a) {
+        var ok = files.has(a.getAttribute('data-file'));
+        a.hidden = !ok; if (ok) shown++;
+      });
+      card.querySelector('.soon').hidden = shown > 0;
+    });
+  }
+
+  // Any guide in guides/ without a hand-written card gets a plain one.
+  function addExtraGuides(files) {
+    var known = {}, extra = {}, order = [];
+    document.querySelectorAll('article.guide a[data-file]').forEach(function (a) {
+      known[a.getAttribute('data-file').replace(/\.(md|pdf)$/i, '')] = true;
+    });
+    files.forEach(function (size, path) {
+      var m = path.match(/^guides\/([^\/]+)\.(md|pdf)$/i);
+      if (!m || m[1].toLowerCase() === 'readme') return;
+      var base = GUIDES + m[1];
+      if (known[base]) return;
+      if (!extra[base]) { extra[base] = { name: m[1] }; order.push(base); }
+      extra[base][m[2].toLowerCase()] = path;
+    });
+    order.sort(function (a, b) { return a.localeCompare(b, 'en-GB', { numeric: true }); });
+    var grid = $('guideGrid');
+    order.forEach(function (base) {
+      var g = extra[base], card = document.createElement('article');
+      card.className = 'card guide';
+      var lab = document.createElement('p'); lab.className = 'mono-label'; lab.textContent = 'Guide';
+      var h = document.createElement('h3');
+      h.textContent = g.name.replace(/^Infinity_Lamp_/i, '').replace(/[_-]+/g, ' ');
+      var links = document.createElement('p'); links.className = 'links';
+      [['md', 'Read online'], ['pdf', 'PDF']].forEach(function (k) {
+        if (!g[k[0]]) return;
+        var a = document.createElement('a');
+        a.href = GH + '/blob/' + BRANCH + '/' + encPath(g[k[0]]); a.textContent = k[1];
+        links.appendChild(a);
+      });
+      card.appendChild(lab); card.appendChild(h); card.appendChild(links);
+      grid.appendChild(card);
+    });
+  }
+
+  function download(e) {
+    // raw.githubusercontent.com sends STEP files as text, so a plain link
+    // shows them in the browser. Fetch and save instead; fall back to the link.
+    var a = e.currentTarget;
+    if (!window.fetch || !window.URL || !URL.createObjectURL) return;
+    e.preventDefault();
+    var label = a.textContent;
+    a.textContent = 'Downloading';
+    fetch(a.getAttribute('data-raw')).then(function (r) {
+      if (!r.ok) throw new Error(r.status); return r.blob();
+    }).then(function (blob) {
+      var u = URL.createObjectURL(blob), t = document.createElement('a');
+      t.href = u; t.download = a.getAttribute('data-name');
+      document.body.appendChild(t); t.click(); t.remove();
+      setTimeout(function () { URL.revokeObjectURL(u); }, 10000);
+    }).catch(function () { location.href = a.href; })
+      .then(function () { a.textContent = label; });
+  }
+
+  function renderParts(files) {
+    var exts = /\.(step|stp|3mf|stl)$/i, groups = {}, order = [];
+    files.forEach(function (size, path) {
+      if (path.indexOf(PRINTS) !== 0 || !exts.test(path)) return;
+      var seg = path.split('/');
+      var g = seg.length > 2 ? seg[1] : '';
+      if (!groups[g]) { groups[g] = []; order.push(g); }
+      groups[g].push({ path: path, name: seg[seg.length - 1], size: size });
+    });
+    if (files.has(PRINTS + 'README.md')) {
+      var note = $('partsNote'), a = document.createElement('a');
+      a.href = GH + '/blob/' + BRANCH + '/' + PRINTS + 'README.md';
+      a.textContent = 'Print settings and notes';
+      note.insertBefore(document.createTextNode('. '), note.firstChild);
+      note.insertBefore(a, note.firstChild);
+    }
+    if (!order.length) return;   // keep "Coming soon"
+
+    var table = $('partsTable'), first = $('partsBody');
+    first.remove();
+    order.sort(function (a, b) { return a.localeCompare(b, 'en-GB', { numeric: true }); });
+    order.forEach(function (g) {
+      var tb = document.createElement('tbody');
+      if (g) {
+        var hr = document.createElement('tr'), th = document.createElement('th');
+        th.colSpan = 3; th.scope = 'rowgroup'; th.className = 'group';
+        th.textContent = g.replace(/[-_]+/g, ' ');
+        hr.appendChild(th); tb.appendChild(hr);
+      }
+      groups[g].sort(function (a, b) { return a.name.localeCompare(b.name, 'en-GB', { numeric: true }); });
+      groups[g].forEach(function (f) {
+        var tr = document.createElement('tr');
+        var td1 = document.createElement('td'); td1.className = 'file';
+        var view = document.createElement('a');
+        view.href = GH + '/blob/' + BRANCH + '/' + encPath(f.path); view.textContent = f.name;
+        td1.appendChild(view);
+        var td2 = document.createElement('td'); td2.className = 'num'; td2.textContent = fmtSize(f.size);
+        var td3 = document.createElement('td');
+        var dl = document.createElement('a');
+        dl.href = GH + '/raw/' + BRANCH + '/' + encPath(f.path);
+        dl.setAttribute('data-raw', RAW + encPath(f.path));
+        dl.setAttribute('data-name', f.name);
+        dl.textContent = 'Download';
+        dl.setAttribute('aria-label', 'Download ' + f.name);
+        dl.addEventListener('click', download);
+        td3.appendChild(dl);
+        tr.appendChild(td1); tr.appendChild(td2); tr.appendChild(td3); tb.appendChild(tr);
+      });
+      table.appendChild(tb);
+    });
+  }
+
+  json('https://api.github.com/repos/' + REPO + '/git/trees/' + BRANCH + '?recursive=1',
+       { headers: { Accept: 'application/vnd.github+json' } })
+    .then(function (t) {
+      var files = new Map();
+      (t.tree || []).forEach(function (e) { if (e.type === 'blob') files.set(e.path, e.size); });
+      markGuides(files);
+      addExtraGuides(files);
+      renderParts(files);
+    })
+    .catch(function () {
+      // Rate-limited or offline: leave guide links visible, point at the folder.
+      $('partsBody').innerHTML = '<tr><td colspan="3">The parts list could not be loaded just now. <a href="' +
+        GH + '/tree/' + BRANCH + '/' + PRINTS + '">Browse the 3D print files on GitHub</a>.</td></tr>';
+    });
+})();
 </script>
 </body>
 </html>
