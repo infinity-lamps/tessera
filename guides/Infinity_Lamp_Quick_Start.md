@@ -1,119 +1,125 @@
-# Infinity Lamp
+# Tessera infinity lamp
 
 ## Quick Start
 
-Welcome to your Infinity Lamp. It is a hand-built, WiFi-connected light with
-34 built-in effects, a browser-based control panel, and sensors that let it
-react to sound and to being picked up.
+Version 2.0 - November 2026
 
-This card gets you lit in five minutes. The full **User Guide** covers
-everything else.
-
----
-
-### 1. Fit the batteries (battery models)
-
-**The lamp ships with an empty battery bay and no cells.** It runs on mains with
-the bay empty, so this step can wait if you want to.
-
-You need **three flat-top, unprotected 18650 cells**, same make, model and age,
-from a reputable seller. Samsung INR18650-35E is the cell to buy. **Protected
-cells are too long and will not fit.**
-
-1. Unplug USB-C. Switch the battery bay isolator **off**.
-2. Check each cell reads at least 3.0 V and all three are within 50 mV of each
-   other.
-3. Fit the cells, checking the polarity of every one.
-4. Switch the isolator **on**, then plug USB-C back in.
-
-**User Guide section 3** has the full detail, including what to do if the lamp
-says it is not charging.
+Your lamp is a hand-built infinity light with 34 built-in effects, a control
+page you open in any browser, and sensors that let it react to sound and to
+being picked up. This card gets it lit in five minutes. The **User Guide**
+covers everything else.
 
 ---
 
-### 2. Plug it in
+### 1. Plug it in
 
-Use the supplied USB-C charger and cable.
+1. Plug a **USB-C PD charger** into the wall and the cable into the lamp's power
+   socket.
+2. Set the **power switch** to **ON**.
 
-> **Important:** the lamp needs a **USB-C Power Delivery (PD)** charger. A
-> standard 5 V phone charger, a laptop USB port or a car socket will not run it
-> and will not charge it. If you replace the charger, it must be a USB-C PD
-> unit of at least **[CHARGER WATTAGE] W**.
+The lamp starts by itself a few seconds later.
 
-If you have fitted cells, leave the lamp plugged in for the first **[FIRST
-CHARGE HOURS] hours** before running it unplugged.
-
-The lamp switches on by itself a few seconds after power is applied.
+> **WARNING**
+> The lamp needs a **USB-C Power Delivery (PD) charger that offers 20 V**, of at
+> least **[CHARGER WATTAGE] W**. A phone charger, a laptop USB port or a car
+> socket will not run it. Look for `20V` in the list printed on the charger.
 
 ---
 
-### 3. Use the button
+### 2. Use the button
 
-There is one button on the base.
+There is one button, on the base.
 
 | Action | What it does |
 |---|---|
-| **Short press** | Next effect |
-| **Press and hold** (about 1 second) | Lamp on / off |
+| **Press** | Next effect |
+| **Double press** | Previous effect |
+| **Hold about 1 second** | LEDs on / off |
+| **Hold 3 seconds** (LEDs flash amber) | Shut down completely |
+| **Hold about 1 second** while shut down | Wake up |
 
-That is the whole physical interface. Everything else is on the web page.
+Everything else is on the control page.
 
 ---
 
-### 4. Open the control page
+### 3. Open the control page
 
-The lamp creates its own WiFi network the first time it is switched on.
+The first time it starts, the lamp creates its own WiFi network.
 
 1. On your phone, tablet or laptop, open **WiFi settings**.
-2. Join the network named **`infinity-lamp`**. There is no password.
-3. A control page should open by itself. If it does not, open a browser and go
-   to **http://infinity.lamp** (or **http://192.168.4.1**).
+2. Join the network **`infinity-lamp`**. There is no password.
+3. The control page should open by itself. If not, open a browser and go to
+   **http://infinity.lamp** (or **http://192.168.4.1**).
 
-You now have full control: power, brightness, speed, effects and colours.
+You now have power, brightness, speed, effects and colours.
 
 ---
 
-### 5. Put it on your home WiFi (optional but recommended)
+### 4. Put it on your home WiFi
 
-Joining your home network means you can control the lamp from any device in the
-house without switching WiFi networks, and it enables the clock-based schedule.
+This lets you reach the lamp from any device in the house, and turns on the
+timed schedule and automatic update checks.
 
-1. On the lamp's control page, scroll to the **Network** panel.
-2. Enter your WiFi name and password. Press **Save**.
-3. Press **Reboot device**, just below. Network changes only take effect after
-   a restart. The lamp comes back on your network, and its own `infinity-lamp`
-   network disappears once it has joined.
-4. From then on, reach it at **http://infinity-lamp.local** from any browser
-   on your home network.
+1. On the control page, find the **Network** panel.
+2. Enter your WiFi name and password. Press **Save network settings**.
+3. Press **Reboot device**. Network changes only apply after a restart.
+4. From then on, open **http://infinity-lamp.local** from any browser on your
+   home network.
 
-If it cannot find your network, it puts its own `infinity-lamp` network back up
-so you are never locked out.
+If the lamp cannot find your WiFi, it brings its own `infinity-lamp` network
+back so you are never locked out.
+
+---
+
+### 5. Add a power bank (optional)
+
+If your lamp has a power-bank bay, a USB-C power bank lets it run unplugged and
+keeps it going through a power cut. No bank is supplied. Yours needs:
+
+- a **USB-C PD output that offers [BANK PD VOLTAGE] V**,
+- **20 W** or more,
+- a **UKCA or CE mark**, bought from a proper retailer,
+- to fit the bay: **[BAY DIMENSIONS]**.
+
+Set the power switch to OFF, plug the bay's lead into the bank's USB-C port,
+seat the bank, then switch back on. The lamp charges the bank while it is
+plugged in and switches to it when it is not. **User Guide section 13** has the
+full detail.
 
 ---
 
 ### 6. Things to try
 
-- **Pick it up and turn it.** Effects such as *Rain*, *Gravity Fill* and
-  *Spirit Level* follow which way is down.
-- **Play some music.** Switch to *Spectrum*, *Bass Bloom* or *Sound Ripple*.
+- **Pick it up and turn it.** *Rain*, *Gravity Fill* and *Spirit Level* follow
+  which way is down.
+- **Play some music.** Try *Spectrum*, *Bass Bloom* or *Sound Ripple*.
 - **Give it a shake.** *Shake Sparkle* bursts when it is handled.
-- **Turn on Auto-cycle** on the control page and let it work through the
-  effects on its own.
-- **Set it down and walk away.** After a few seconds without movement, the face
-  resting on the table switches itself off to save power. Pick the lamp up and
-  it comes straight back.
+- **Turn on Auto-cycle** and let it work through the effects by itself.
+- **Set it down and walk away.** After a few seconds without movement the face
+  resting on the table turns off to save power. Pick it up and it comes back.
+
+---
+
+### 7. Switching off
+
+| | Use it for |
+|---|---|
+| **Off** (hold the button 1 s) | Every day. Dark, but your phone and schedule can still switch it on |
+| **Shut down** (hold the button 3 s) | Leaving it unused. Draws almost nothing; hold the button 1 s to wake it |
+| **Power switch OFF** | Storage, and before moving it. Draws nothing at all |
+
+On a power bank, *Off* still draws a little to keep the bank awake. Plug back
+into the mains or shut down when you have finished.
 
 ---
 
 ### Safety, briefly
 
-- Indoor use only. Keep it dry.
-- Do not cover the lamp or run it inside a cabinet or box.
-- If you have fitted cells: do not drop it, crush it, or leave it in a hot car
-  or in direct sun. Never fit a damaged or swollen cell, never mix old and new
-  cells, and recycle old cells at a battery collection point rather than in the
-  bin. If the lamp ever swells, gets hot, or smells odd, unplug it, move it
-  somewhere non-flammable and contact me.
+- Indoor use only. Keep it dry, and do not cover it or put it in a cabinet.
+- Use only a certified USB-C PD power bank. Never use one that is damaged or
+  swollen, and recycle it at a battery collection point, not in the bin.
+- If the lamp ever gets hot, swells or smells odd: unplug it, switch it off,
+  move it somewhere non-flammable and contact me.
 - Some effects flash or strobe. If you are sensitive to flashing light, avoid
   *Beat Strobe*, *Beat Pulse* and *Theatre Chase*.
 - Not a toy. It is heavy and has rigid panels.
@@ -126,16 +132,16 @@ Full safety notes are in the User Guide.
 
 | Symptom | First thing to check |
 |---|---|
-| Nothing lights up | Is it a **PD** charger? Try the supplied one. Hold the button for 1 second. |
-| Can't find `infinity-lamp` WiFi | It has already joined your home network. Try http://infinity-lamp.local |
-| `infinity-lamp.local` doesn't load | Find its IP in your router's device list and use that instead |
-| Some effects are missing | This lamp was built without that sensor. See the User Guide |
+| Nothing lights up | Power switch ON? A **PD** charger that offers 20 V? Hold the button for 1 second |
+| LEDs blink when the mains goes | Normal with a power bank: the lamp is switching over |
+| Cannot find `infinity-lamp` WiFi | It has already joined your home network. Try http://infinity-lamp.local |
+| `infinity-lamp.local` does not load | Find the lamp's IP address in your router's device list and use that |
+| Some effects are missing | Your lamp was built without that sensor. See the User Guide |
 
 ---
 
-**Made by [MAKER NAME]**
-Questions, spares or repairs: **[SUPPORT EMAIL]**
-Full documentation: **[PROJECT URL]**
+**Made by Ryan in Scotland**
 
-*Hand-built, one at a time. It is not a certified commercial product - please
-read the safety notice in the User Guide.*
+Questions, spares or repairs: **[SUPPORT EMAIL]**
+
+Guides and updates: **[infinity-lamps.github.io/tessera](https://infinity-lamps.github.io/tessera/)**
