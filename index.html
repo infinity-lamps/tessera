@@ -358,7 +358,10 @@
 <!-- 03 GUIDES. The three cards below are hand-written; their data-file paths
      are on the main branch. A link whose file is not on main yet is hidden and
      the card shows "Coming soon". Any OTHER guide in guides/ (a .md, a .pdf, or
-     both with the same name) gets a card of its own automatically. -->
+     both with the same name) gets a card of its own automatically.
+     PDF links point at raw.githubusercontent.com, which serves PDFs as
+     application/octet-stream, so browsers save the file instead of opening
+     GitHub's viewer. (The download attribute would be ignored: other origin.) -->
 <section id="guides" class="block">
   <div class="wrap">
     <p class="mono-label">03 · Guides</p>
@@ -369,19 +372,19 @@
         <p class="mono-label">Every lamp</p>
         <h3>Quick Start</h3>
         <p class="desc">From plugging it in to controlling it from your phone.</p>
-        <p class="links"><a data-file="guides/Infinity_Lamp_Quick_Start.md" href="https://github.com/infinity-lamps/tessera/blob/main/guides/Infinity_Lamp_Quick_Start.md">Read online</a><a data-file="guides/Infinity_Lamp_Quick_Start.pdf" href="https://github.com/infinity-lamps/tessera/blob/main/guides/Infinity_Lamp_Quick_Start.pdf">PDF</a><span class="soon" hidden>Coming soon</span></p>
+        <p class="links"><a data-file="guides/Infinity_Lamp_Quick_Start.md" href="https://github.com/infinity-lamps/tessera/blob/main/guides/Infinity_Lamp_Quick_Start.md">Read online</a><a data-file="guides/Infinity_Lamp_Quick_Start.pdf" href="https://raw.githubusercontent.com/infinity-lamps/tessera/main/guides/Infinity_Lamp_Quick_Start.pdf">Download PDF</a><span class="soon" hidden>Coming soon</span></p>
       </article>
       <article class="card guide">
         <p class="mono-label">Every lamp</p>
         <h3>User Guide</h3>
         <p class="desc">Every control on the lamp's page, what it does, and what to try when something looks wrong.</p>
-        <p class="links"><a data-file="guides/Infinity_Lamp_User_Guide.md" href="https://github.com/infinity-lamps/tessera/blob/main/guides/Infinity_Lamp_User_Guide.md">Read online</a><a data-file="guides/Infinity_Lamp_User_Guide.pdf" href="https://github.com/infinity-lamps/tessera/blob/main/guides/Infinity_Lamp_User_Guide.pdf">PDF</a><span class="soon" hidden>Coming soon</span></p>
+        <p class="links"><a data-file="guides/Infinity_Lamp_User_Guide.md" href="https://github.com/infinity-lamps/tessera/blob/main/guides/Infinity_Lamp_User_Guide.md">Read online</a><a data-file="guides/Infinity_Lamp_User_Guide.pdf" href="https://raw.githubusercontent.com/infinity-lamps/tessera/main/guides/Infinity_Lamp_User_Guide.pdf">Download PDF</a><span class="soon" hidden>Coming soon</span></p>
       </article>
       <article class="card guide kit">
         <p class="mono-label">Kit</p>
         <h3>Kit Build Guide</h3>
         <p class="desc">Building a lamp from a kit: frame, wiring, panels and first power-up.</p>
-        <p class="links"><a data-file="guides/Infinity_Lamp_DIY_Kit_Build_Guide.md" href="https://github.com/infinity-lamps/tessera/blob/main/guides/Infinity_Lamp_DIY_Kit_Build_Guide.md">Read online</a><a data-file="guides/Infinity_Lamp_DIY_Kit_Build_Guide.pdf" href="https://github.com/infinity-lamps/tessera/blob/main/guides/Infinity_Lamp_DIY_Kit_Build_Guide.pdf">PDF</a><span class="soon" hidden>Coming soon</span></p>
+        <p class="links"><a data-file="guides/Infinity_Lamp_DIY_Kit_Build_Guide.md" href="https://github.com/infinity-lamps/tessera/blob/main/guides/Infinity_Lamp_DIY_Kit_Build_Guide.md">Read online</a><a data-file="guides/Infinity_Lamp_DIY_Kit_Build_Guide.pdf" href="https://raw.githubusercontent.com/infinity-lamps/tessera/main/guides/Infinity_Lamp_DIY_Kit_Build_Guide.pdf">Download PDF</a><span class="soon" hidden>Coming soon</span></p>
       </article>
     </div>
   </div>
@@ -451,6 +454,9 @@
   if (REPO !== FALLBACK_REPO) {
     document.querySelectorAll('a[href^="https://github.com/' + FALLBACK_REPO + '"]').forEach(function (a) {
       a.href = a.href.replace('https://github.com/' + FALLBACK_REPO, GH);
+    });
+    document.querySelectorAll('a[href^="https://raw.githubusercontent.com/' + FALLBACK_REPO + '/"]').forEach(function (a) {
+      a.href = a.href.replace('https://raw.githubusercontent.com/' + FALLBACK_REPO + '/', 'https://raw.githubusercontent.com/' + REPO + '/');
     });
   }
   if (/\.github\.io$/i.test(location.hostname)) {
@@ -543,10 +549,13 @@
       var h = document.createElement('h3');
       h.textContent = g.name.replace(/^Infinity_Lamp_/i, '').replace(/[_-]+/g, ' ');
       var links = document.createElement('p'); links.className = 'links';
-      [['md', 'Read online'], ['pdf', 'PDF']].forEach(function (k) {
+      [['md', 'Read online'], ['pdf', 'Download PDF']].forEach(function (k) {
         if (!g[k[0]]) return;
         var a = document.createElement('a');
-        a.href = GH + '/blob/' + BRANCH + '/' + encPath(g[k[0]]); a.textContent = k[1];
+        // PDFs come from the raw host, which serves them as a download rather
+        // than opening GitHub's PDF viewer.
+        a.href = (k[0] === 'pdf' ? RAW : GH + '/blob/' + BRANCH + '/') + encPath(g[k[0]]);
+        a.textContent = k[1];
         links.appendChild(a);
       });
       card.appendChild(lab); card.appendChild(h); card.appendChild(links);
