@@ -1,13 +1,13 @@
 {
   "beta": {
-    "version": "1.1.0-beta3",
-    "url": "https://github.com/infinity-lamps/tessera/releases/download/v1.1.0-beta3/infinity-lamp-esp32s3-1.1.0-beta3.bin",
-    "sha256": "8b1b0879dff418fb97fe91282e8806a6d0b72f188c2f71fb83246accbe83dcaa",
-    "size": 1543584,
-    "published": "2026-11-05",
-    "notes": "Checkpoint 2026-11-05 21:24",
-    "fsUrl": "https://github.com/infinity-lamps/tessera/releases/download/v1.1.0-beta3/infinity-lamp-filesystem-1.1.0-beta3.bin",
-    "fsSha256": "a568658f2a657376fccde4ba2a2917605fdfbee4641df4e694e345c5a5c2d9f6",
+    "version": "1.1.0-beta4",
+    "url": "https://github.com/infinity-lamps/tessera/releases/download/v1.1.0-beta4/infinity-lamp-esp32s3-1.1.0-beta4.bin",
+    "sha256": "ba2d01de875aac076a9f7acaa96038dfe3e57cfbbb5b0768334a6ca9a33fe57e",
+    "size": 1555168,
+    "published": "2026-11-08",
+    "notes": "Checkpoint 2026-11-06 23:24",
+    "fsUrl": "https://github.com/infinity-lamps/tessera/releases/download/v1.1.0-beta4/infinity-lamp-filesystem-1.1.0-beta4.bin",
+    "fsSha256": "57c6ba9e87d71658ee2e90992139246ca3f2c33089e8780ceb40021df700d09a",
     "fsSize": 3538944
   },
   "stable": {
